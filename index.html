@@ -13,6 +13,9 @@
 
 <body>
 <div id="magoContainer" class="mapWrap">
+	<ul class="shortcut">
+		<li onclick="gotoProject('workshop.json', '126.60890424717905', '37.58358288958673', '50', '3')">WORKSHOP</li>
+	</ul>
 </div>
 <canvas id="objectLabel"></canvas>
 <script>
@@ -95,6 +98,27 @@
 
 	function createManagerFactory(viewer, renderDivId, serverPolicy, projectIdArray, projectDataArray, projectDataFolderArray, imagePath) {
 		managerFactory = new ManagerFactory(viewer, renderDivId, serverPolicy, projectIdArray, projectDataArray, projectDataFolderArray, imagePath);
+	}
+
+	function gotoProject(projectId, longitude, latitude, height, duration) {
+		var projectData = getDataAPI(CODE.PROJECT_ID_PREFIX + projectId);
+		console.log("--------------------------------------------------");
+		console.log(projectData);
+		if (projectData === null || projectData === undefined) {
+			$.ajax({
+				url: dataUrl + projectId,
+				type: "GET",
+				dataType: "json",
+				success: function(serverData) {
+					gotoProjectAPI(managerFactory, projectId, serverData, serverData.data_key, longitude, latitude, height, duration);
+				},
+				error : function(request, status, error) {
+					console.log("code : " + request.status + "\n" + "message : " + request.responseText + "\n" + "error : " + error);
+				}
+			});
+		} else {
+			gotoProjectAPI(managerFactory, projectId, projectData, projectData.data_key, longitude, latitude, height, duration);
+		}
 	}
 </script>
 </body>
