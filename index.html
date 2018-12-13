@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Cesium</title>
+	<link rel="stylesheet" href="css/demo.css" />
+	<link rel="stylesheet" href="dist/engine/cesium/Widgets/widgets.css" />
+	<script type="text/javascript" src="externlib/jquery/jquery.js"></script>
+	<script type="text/javascript" src="dist/mago3d/mago3d.js"></script>
+  <script type="text/javascript" src="dist/engine/cesium/Cesium.js"></script>
+</head>
+
+<body>
+<div id="magoContainer" class="mapWrap">
+</div>
+<canvas id="objectLabel"></canvas>
+<script>
+	var managerFactory = null;
+	var insertIssueEnable = false;
+
+	var imagePath = "/mago/images/ko";
+	var policyUrl = "/mago/data/policies/";
+	var dataUrl = "/mago/data/projects/";
+
+	magoStart(null, "magoContainer", imagePath);
+
+	var intervalCount = 0;
+	var timerId = setInterval("startMogoUI()", 1000);
+
+	function startMogoUI() {
+		intervalCount++;
+		if(managerFactory != null && managerFactory.getMagoManagerState() === CODE.magoManagerState.READY) {
+			clearInterval(timerId);
+			console.log(" managerFactory != null, managerFactory.getMagoManagerState() = " + managerFactory.getMagoManagerState() + ", intervalCount = " + intervalCount);
+			return;
+		}
+		console.log("--------- intervalCount = " + intervalCount);
+	}
+
+    // mago3d start, policy loading
+	function magoStart(viewer, renderDivId, imagePath) {
+		$.ajax({
+			url: policyUrl + "workshop-policy.json",
+			type: "GET",
+			dataType: "json",
+			success: function(serverPolicy){
+				loadData(viewer, renderDivId, serverPolicy);
+			},
+			error: function(e){
+				console.log("Policy Error");
+				alert(e.responseText);
+			}
+		});
+	}
+
+	// init project load
+	function loadData(viewer, renderDivId, serverPolicy) {
+		if(serverPolicy.geo_data_default_projects === null || serverPolicy.geo_data_default_projects.length < 1) {
+			managerFactory = new ManagerFactory(viewer, renderDivId, serverPolicy, null, null, null, imagePath);
+		} else {
+			var defaultProjectArray = serverPolicy.geo_data_default_projects;
+			var projectIdArray = new Array(defaultProjectArray.length);
+			var projectDataArray = new Array(defaultProjectArray.length);
+			var projectDataFolderArray = new Array(defaultProjectArray.length);
+
+			var dataCount = 0;
+			defaultProjectArray.forEach(function(projectId, index) {
+				projectIdArray[index] = projectId;
+				console.log("PROJECT ID:");
+				console.log(projectId);
+				//console.log("url = " + dataInformationUrl + projectId);
+				$.ajax({
+					url: dataUrl + projectId,
+					type: "GET",
+					dataType: "json",
+					success: function(serverData) {
+						console.log("SUCCESS");
+						//console.log("index = " + index + ", data = " + serverData);
+						projectDataArray[index] = serverData;
+						projectDataFolderArray[index] = serverData.data_key;
+						if(defaultProjectArray.length === (dataCount + 1)) {
+							createManagerFactory(viewer, renderDivId, serverPolicy, projectIdArray, projectDataArray, projectDataFolderArray, imagePath);
+						}
+						dataCount++;
+					},
+					error: function(e){
+						console.log("Data Error");
+						alert(e.responseText);
+					}
+				});
+			});
+		}
+	}
+
+	function createManagerFactory(viewer, renderDivId, serverPolicy, projectIdArray, projectDataArray, projectDataFolderArray, imagePath) {
+		managerFactory = new ManagerFactory(viewer, renderDivId, serverPolicy, projectIdArray, projectDataArray, projectDataFolderArray, imagePath);
+	}
+</script>
+</body>
+</html>
